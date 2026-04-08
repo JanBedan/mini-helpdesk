@@ -1,0 +1,11 @@
+services:
+  minihelpdesk:
+    build: .
+    container_name: minihelpdesk
+    ports:
+      - "8081:8081"
+    environment:
+      - OLLAMA_URL=http://host.docker.internal:11434/api/generate
+      - OLLAMA_MODEL=llama3.2:1b
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
