@@ -70,8 +70,80 @@ Aplikace komunikuje s Ollamou přes její API.
 
 
 
+
+
+
+
+
+Problémy při tvorbě projektu a jejich řešení
+
+Během realizace projektu se objevilo několik problémů:
+
+1. Instalace Dockeru
+
+Při instalaci Dockeru došlo k přerušení procesu (Ctrl+Z), což způsobilo zamknutí balíčkovacího systému (`apt lock`).
+Řešení: dokončení rozpracované instalace pomocí `dpkg --configure -a` a následné opravení závislostí.
+
+
+
+2. Problém s docker-compose
+
+Při pokusu o spuštění aplikace pomocí `docker-compose` se objevila chyba (`KeyError: ContainerConfig`).
+Řešení: místo docker-compose byl použit přímý způsob spuštění přes `docker build` a `docker run`.
+
+
+
+3. Chyba při spuštění aplikace
+
+Zpočátku nebylo jasné, který terminál slouží pro běh serveru a který pro testování.
+Řešení: rozdělení práce na dva terminály – jeden pro běžící server, druhý pro testování pomocí `curl`.
+
+
+
+4. Problém s Ollama (AI část)
+
+Při volání endpointu `/ai` docházelo k chybě připojení (`connection refused`).
+Příčina: Ollama nebyla spuštěná nebo nebyla dostupná z Docker kontejneru.
+
+Řešení:
+
+* instalace Ollama
+* stažení modelu (`llama3.2:1b`)
+* nastavení služby tak, aby byla dostupná i pro Docker (`OLLAMA_HOST=0.0.0.0`)
+
+
+
+5. Konflikt portu Ollama
+
+Při pokusu o spuštění Ollama se objevila chyba „address already in use“.
+Řešení: zjištění, že služba již běží na pozadí a není potřeba ji spouštět znovu.
+
+
+
+6. Problémy s GitHub přihlášením
+
+Při nahrávání projektu na GitHub nebylo možné použít klasické heslo.
+Řešení: vytvoření Personal Access Tokenu a jeho použití místo hesla.
+
+
+
+7. Nastavení Git (email)
+
+Došlo k nesprávnému nastavení emailu v Git konfiguraci.
+Řešení: přepsání pomocí `git config --global user.email`.
+
+
+
+8. Uložení projektu ve VirtualBoxu
+
+Projekt byl vytvářen ve virtuálním stroji spuštěném z flash disku, hrozila ztráta dat.
+Řešení: vytvoření zálohy projektu (ZIP) a uložení na flash disk.
+
+
+
 Shrnutí
 
-Aplikace běží v Docker kontejneru a je dostupná přes síťový port.
-AI odpovědi jsou generovány lokálně pomocí LLM.
+Většina problémů souvisela s konfigurací prostředí (Docker, Ollama, Git).
+Po jejich vyřešení aplikace funguje správně a je dostupná přes síťový port.
+
 
