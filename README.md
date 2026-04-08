@@ -1,4 +1,4 @@
-Mini Helpdesk – síťová služba
+## Mini Helpdesk – síťová služba
 
 
 
@@ -75,7 +75,7 @@ Aplikace komunikuje s Ollamou přes její API.
 
 
 
-Problémy při tvorbě projektu a jejich řešení
+## Problémy při tvorbě projektu a jejich řešení
 
 Během realizace projektu se objevilo několik problémů:
 
