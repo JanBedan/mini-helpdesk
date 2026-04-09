@@ -9,11 +9,9 @@ app = FastAPI()
 AUTHOR = "Jan Bedan"
 TOPIC = "Mini helpdesk pro školní síť"
 
-# Lokální fallback pro domácí testování
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434/api/generate")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
 
-# Školní server - OpenAI compatible API
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "").rstrip("/")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gemma3:27b")
@@ -21,6 +19,14 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gemma3:27b")
 
 class AIRequest(BaseModel):
     prompt: str
+
+
+@app.get("/")
+def home():
+    return {
+        "message": "Mini Helpdesk bezi",
+        "endpoints": ["/ping", "/status", "/ai"]
+    }
 
 
 @app.get("/ping")
