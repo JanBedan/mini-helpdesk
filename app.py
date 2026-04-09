@@ -1,19 +1,23 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Form
 from pydantic import BaseModel
 from datetime import datetime
 from fastapi.responses import HTMLResponse
 import requests
 import os
 import html
+import urllib3
 
 app = FastAPI()
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 AUTHOR = "Jan Bedan"
 TOPIC = "Mini helpdesk pro školní síť"
 
+# Lokální fallback pro domácí testování
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434/api/generate")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
 
+# Školní server - OpenAI compatible API
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "").rstrip("/")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gemma3:27b")
@@ -45,7 +49,13 @@ def ask_openai_compatible(prompt: str) -> str:
         "max_tokens": 120
     }
 
-    response = requests.post(url, headers=headers, json=payload, timeout=60)
+    response = requests.post(
+        url,
+        headers=headers,
+        json=payload,
+        timeout=60,
+        verify=False
+    )
     response.raise_for_status()
     data = response.json()
     return data["choices"][0]["message"]["content"].strip()
@@ -172,7 +182,7 @@ def home():
 
 
 @app.post("/ask", response_class=HTMLResponse)
-def ask_form(prompt: str = ""):
+def ask_form(prompt: str = Form(...)):
     try:
         answer, _provider = get_ai_answer(prompt)
         return render_page(answer=answer, prompt=prompt)
