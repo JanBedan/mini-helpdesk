@@ -27,13 +27,44 @@ class AIRequest(BaseModel):
     prompt: str
 
 
+def try_request(url: str, payload: dict, headers: dict) -> dict:
+    response = requests.post(
+        url,
+        headers=headers,
+        json=payload,
+        timeout=60,
+        verify=False
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def extract_answer(data: dict) -> str:
+    if "choices" in data and len(data["choices"]) > 0:
+        choice = data["choices"][0]
+
+        if "message" in choice and "content" in choice["message"]:
+            return choice["message"]["content"].strip()
+
+        if "text" in choice:
+            return choice["text"].strip()
+
+    if "response" in data:
+        return str(data["response"]).strip()
+
+    return str(data)
+
+
 def ask_openai_compatible(prompt: str) -> str:
-    url = f"{OPENAI_BASE_URL}/chat/completions"
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
         "Content-Type": "application/json"
     }
-    payload = {
+
+    errors = []
+
+    # Varianta 1: chat/completions na zadané base URL
+    chat_payload = {
         "model": OPENAI_MODEL,
         "messages": [
             {
@@ -49,22 +80,41 @@ def ask_openai_compatible(prompt: str) -> str:
         "max_tokens": 120
     }
 
-    response = requests.post(
-        url,
-        headers=headers,
-        json=payload,
-        timeout=60,
-        verify=False
-    )
-    response.raise_for_status()
-    data = response.json()
-    return data["choices"][0]["message"]["content"].strip()
+    # Varianta 2: completions na zadané base URL
+    completions_payload = {
+        "model": OPENAI_MODEL,
+        "prompt": f"Odpověz česky stručně, ideálně jednou větou: {prompt}",
+        "temperature": 0.3,
+        "max_tokens": 120
+    }
+
+    urls_to_try = [
+        (f"{OPENAI_BASE_URL}/chat/completions", chat_payload),
+        (f"{OPENAI_BASE_URL}/completions", completions_payload),
+    ]
+
+    # Když by base URL už obsahovala /v1 a server to chtěl bez něj, zkus i to
+    if OPENAI_BASE_URL.endswith("/v1"):
+        base_without_v1 = OPENAI_BASE_URL[:-3]
+        urls_to_try.extend([
+            (f"{base_without_v1}/chat/completions", chat_payload),
+            (f"{base_without_v1}/completions", completions_payload),
+        ])
+
+    for url, payload in urls_to_try:
+        try:
+            data = try_request(url, payload, headers)
+            return extract_answer(data)
+        except Exception as e:
+            errors.append(f"{url} -> {str(e)}")
+
+    raise Exception(" | ".join(errors))
 
 
 def ask_ollama(prompt: str) -> str:
     payload = {
         "model": OLLAMA_MODEL,
-        "prompt": f"Odpověz česky stručně: {prompt}",
+        "prompt": f"Odpověz česky stručně, ideálně jednou větou: {prompt}",
         "stream": False
     }
 
@@ -77,6 +127,7 @@ def ask_ollama(prompt: str) -> str:
 def get_ai_answer(prompt: str) -> tuple[str, str]:
     if OPENAI_API_KEY and OPENAI_BASE_URL:
         return ask_openai_compatible(prompt), "openai-compatible"
+
     return ask_ollama(prompt), "ollama"
 
 
@@ -153,6 +204,11 @@ def render_page(answer: str = "", prompt: str = "", error: str = "") -> str:
                 margin-bottom: 20px;
                 color: #555;
             }}
+            .small {{
+                margin-top: 10px;
+                font-size: 14px;
+                color: #666;
+            }}
         </style>
     </head>
     <body>
@@ -167,6 +223,10 @@ def render_page(answer: str = "", prompt: str = "", error: str = "") -> str:
                 <br>
                 <button type="submit">Odeslat dotaz</button>
             </form>
+
+            <div class="small">
+                Dostupné endpointy: /ping, /status, /ai
+            </div>
 
             {f'<div class="result"><strong>Odpověď:</strong><br><br>{safe_answer}</div>' if safe_answer else ''}
             {f'<div class="error"><strong>Chyba:</strong><br><br>{safe_error}</div>' if safe_error else ''}
@@ -202,7 +262,9 @@ def status():
         "author": AUTHOR,
         "topic": TOPIC,
         "time": datetime.now().isoformat(),
-        "openai_configured": bool(OPENAI_API_KEY and OPENAI_BASE_URL)
+        "openai_configured": bool(OPENAI_API_KEY and OPENAI_BASE_URL),
+        "openai_base_url": OPENAI_BASE_URL,
+        "openai_model": OPENAI_MODEL
     }
 
 
