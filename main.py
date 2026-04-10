@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from openai import OpenAI
 import httpx
+import uvicorn
 
 app = FastAPI(title="Mini Helpdesk")
 
@@ -163,3 +164,8 @@ def ai(data: Prompt):
         return {"answer": answer}
     except Exception as e:
         return {"error": str(e)}
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
